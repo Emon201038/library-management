@@ -19,37 +19,83 @@ const throwGenericError_1 = require("../helper/throwGenericError");
 const book_model_1 = __importDefault(require("../models/book.model"));
 const getBorrowedBooks = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const books = yield borrow_model_1.default.aggregate([
+        const { page = 1, limit = 12, search = "", filter = "all", sortBy = "quantity", sortOrder = "desc", } = req.query;
+        const skip = (Number(page) - 1) * Number(limit);
+        const sortField = sortBy === "title" ? "book.title" : "totalQuantity";
+        const sortOrderValue = sortOrder.startsWith("asc") ? 1 : -1;
+        const pipeline = [
             {
                 $lookup: {
                     from: "books",
                     localField: "book",
                     foreignField: "_id",
-                    as: "book"
-                }
+                    as: "book",
+                },
             },
             {
-                $unwind: "$book"
+                $unwind: "$book",
             },
             {
                 $group: {
                     _id: "$book._id",
                     book: { $first: "$book" },
-                    totalQuantity: { $sum: "$quantity" }
-                }
+                    totalQuantity: { $sum: "$quantity" },
+                },
             },
             {
                 $project: {
                     _id: 0,
                     book: {
                         title: "$book.title",
-                        isbn: "$book.isbn"
+                        image: "$book.image",
+                        isbn: "$book.isbn",
                     },
-                    totalQuantity: 1
-                }
-            }
-        ]);
-        (0, response_controller_1.successResponse)(res, { message: "Borrowed books summary retrieved successfully.", success: true, payload: books });
+                    totalQuantity: 1,
+                },
+            },
+        ];
+        // Search filter
+        if (search) {
+            pipeline.push({
+                $match: {
+                    "book.title": { $regex: new RegExp(search, "i") },
+                },
+            });
+        }
+        // Quantity filter
+        if (filter === "high") {
+            pipeline.push({
+                $match: {
+                    totalQuantity: { $gt: 10 },
+                },
+            });
+        }
+        else if (filter === "medium") {
+            pipeline.push({
+                $match: {
+                    totalQuantity: { $gte: 5, $lte: 10 },
+                },
+            });
+        }
+        else if (filter === "low") {
+            pipeline.push({
+                $match: {
+                    totalQuantity: { $lt: 5 },
+                },
+            });
+        }
+        // Sorting
+        pipeline.push({
+            $sort: { [sortField]: sortOrderValue },
+        });
+        // Pagination
+        pipeline.push({ $skip: skip }, { $limit: Number(limit) });
+        const books = yield borrow_model_1.default.aggregate(pipeline);
+        (0, response_controller_1.successResponse)(res, {
+            message: "Borrowed books summary retrieved successfully.",
+            success: true,
+            payload: books,
+        });
     }
     catch (error) {
         next(error);

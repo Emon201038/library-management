@@ -20,8 +20,8 @@ exports.validateCreateBook = [
     (0, express_validator_1.body)("genre")
         .notEmpty()
         .withMessage("genre is required")
-        .isIn(["FICTION", "NON_FICTION", "SCIENCE", "HISTORY", "BIOGRAPHY", "FANTASY"])
-        .withMessage((value) => `${value} is not supported.`),
+        .isString()
+        .withMessage("genre must be a string"),
     (0, express_validator_1.body)("isbn")
         .notEmpty()
         .withMessage("ISBN is required")
@@ -38,4 +38,26 @@ exports.validateCreateBook = [
         .optional()
         .isBoolean()
         .withMessage("Available must be a boolean"),
+    (0, express_validator_1.body)("image")
+        .optional(),
+    (0, express_validator_1.body)("price")
+        .optional()
+        .isString()
+        .withMessage("Price must be a string"),
+    (0, express_validator_1.body)("publishedYear")
+        .optional()
+        .isNumeric()
+        .withMessage("Published year must be a number"),
+    (0, express_validator_1.body)("publisher")
+        .optional()
+        .isString()
+        .withMessage("Publisher must be a string"),
+    (0, express_validator_1.body)("pages")
+        .optional()
+        .isNumeric()
+        .withMessage("Pages must be a number"),
+    // body("language")
+    //   .optional()
+    //   .isString()
+    //   .withMessage("Language must be a string"),
 ];

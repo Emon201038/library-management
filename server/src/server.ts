@@ -5,5 +5,5 @@ import { PORT } from "./secret";
 
 app.listen(PORT, async () => {
   await connectDb()
-  console.log("Server is running on port 3000. Go to http://localhost:%s", PORT)
+  console.log("Server is running on port %s. Go to http://localhost:%s", PORT, PORT)
 });

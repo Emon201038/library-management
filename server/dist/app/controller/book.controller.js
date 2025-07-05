@@ -17,11 +17,12 @@ const response_controller_1 = require("./response.controller");
 const book_model_1 = __importDefault(require("../models/book.model"));
 const throwGenericError_1 = require("../helper/throwGenericError");
 const getBooks = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a, _b, _c;
     try {
         const { sortBy = "createdAt", sort = "desc", limit = 10, filter, search, page = 1 } = req.query;
         const filterKeyword = {};
-        if (filter) {
-            filterKeyword.genre = { $in: filter.split(",").map((genre) => genre.toUpperCase()) }; //multiple genre filtering support
+        if (filter && (filter !== "all")) {
+            filterKeyword.genre = { $in: (_c = (_b = (_a = filter === null || filter === void 0 ? void 0 : filter.replace("-", " ")) === null || _a === void 0 ? void 0 : _a.toUpperCase()) === null || _b === void 0 ? void 0 : _b.split(",")) === null || _c === void 0 ? void 0 : _c.map((genre) => genre.toUpperCase()) }; //multiple genre filtering support
         }
         ;
         if (search) {
@@ -50,7 +51,17 @@ const getBooks = (req, res, next) => __awaiter(void 0, void 0, void 0, function*
         if (books.length === 0) {
             resMessage = "No Books are found.";
         }
-        (0, response_controller_1.successResponse)(res, { message: resMessage, success: true, payload: books });
+        ;
+        const totalBooks = yield book_model_1.default.countDocuments(filterKeyword);
+        const pagination = {
+            page: Number(page),
+            nextPage: Math.ceil(totalBooks / Number(limit)) > Number(page) ? Number(page) + 1 : null,
+            prevPage: Number(page) - 1 >= 1 ? Number(page) - 1 : null,
+            limit: limit,
+            totalItems: totalBooks,
+            totalPages: Math.ceil(totalBooks / limit)
+        };
+        (0, response_controller_1.successResponse)(res, { message: resMessage, success: true, payload: { books, pagination } });
     }
     catch (error) {
         next(error);
@@ -60,7 +71,8 @@ exports.getBooks = getBooks;
 const createBook = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const body = req.body;
-        const book = yield book_model_1.default.create(body);
+        const book = new book_model_1.default(body);
+        yield book.save();
         (0, response_controller_1.successResponse)(res, { message: "Book created successfully.", success: true, statusCode: 201, payload: book });
     }
     catch (error) {
@@ -110,7 +122,13 @@ const updateBook = (req, res, next) => __awaiter(void 0, void 0, void 0, functio
             description: "string",
             copies: "number",
             isbn: "number",
-            available: "boolean"
+            available: "boolean",
+            publishedYear: "number",
+            publisher: "string",
+            pages: "number",
+            language: "string",
+            price: "string",
+            image: "string"
         };
         if (!req.body || Object.keys(req.body).length === 0) {
             throw {

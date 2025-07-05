@@ -20,6 +20,8 @@ const BookSchema = new Schema<IBook, IBookModelType>({
   genre: {
     type: String,
     required: [true, "Genre is required"],
+    trim: true,
+    uppercase: true,
     // enum: {
     //   values: ["FICTION", "NON_FICTION", "SCIENCE", "HISTORY", "BIOGRAPHY", "FANTASY"],
     //   message: "{VALUE} is not supported."

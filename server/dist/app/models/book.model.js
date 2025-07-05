@@ -32,10 +32,12 @@ const BookSchema = new mongoose_1.Schema({
     genre: {
         type: String,
         required: [true, "Genre is required"],
-        enum: {
-            values: ["FICTION", "NON_FICTION", "SCIENCE", "HISTORY", "BIOGRAPHY", "FANTASY"],
-            message: "{VALUE} is not supported."
-        }
+        trim: true,
+        uppercase: true,
+        // enum: {
+        //   values: ["FICTION", "NON_FICTION", "SCIENCE", "HISTORY", "BIOGRAPHY", "FANTASY"],
+        //   message: "{VALUE} is not supported."
+        // }
     },
     isbn: {
         type: Number,
@@ -50,7 +52,25 @@ const BookSchema = new mongoose_1.Schema({
     available: {
         type: Boolean,
         default: true
-    }
+    },
+    image: String,
+    publisher: String,
+    publishedYear: {
+        type: Number
+    },
+    pages: {
+        type: Number
+    },
+    language: String,
+    rating: {
+        type: Number,
+        default: 0
+    },
+    reviewCount: {
+        type: Number,
+        default: 0
+    },
+    price: String,
 }, {
     timestamps: true,
     versionKey: false
@@ -61,7 +81,10 @@ BookSchema.pre("save", function (next) {
         this.available = false;
     }
     else {
-        this.available = true;
+        if (this.available)
+            this.available = true;
+        else
+            this.available = false;
     }
     next();
 });

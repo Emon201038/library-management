@@ -4,44 +4,114 @@ import Borrow from "../models/borrow.model";
 import { throwGenericError } from "../helper/throwGenericError";
 import Book from "../models/book.model";
 import { IBook, IBorrow } from "../types";
+import { PipelineStage } from "mongoose";
 
 export const getBorrowedBooks = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const books = await Borrow.aggregate(
-      [
-        {
-          $lookup: {
-            from: "books",
-            localField: "book",
-            foreignField: "_id",
-            as: "book"
-          }
+    interface IQuery {
+      sortBy?: "title" | "quantity";
+      sortOrder?: "desc" | "asc" | "descending" | "ascending";
+      limit?: number;
+      filter?: "all" | "high" | "medium" | "low";
+      search?: string;
+      page?: number;
+    }
+
+    const {
+      page = 1,
+      limit = 12,
+      search = "",
+      filter = "all",
+      sortBy = "quantity",
+      sortOrder = "desc",
+    }: IQuery = req.query;
+
+    const skip = (Number(page) - 1) * Number(limit);
+    const sortField = sortBy === "title" ? "book.title" : "totalQuantity";
+    const sortOrderValue = sortOrder.startsWith("asc") ? 1 : -1;
+
+    const pipeline: PipelineStage[] = [
+      {
+        $lookup: {
+          from: "books",
+          localField: "book",
+          foreignField: "_id",
+          as: "book",
         },
-        {
-          $unwind: "$book"
+      },
+      {
+        $unwind: "$book",
+      },
+      {
+        $group: {
+          _id: "$book._id",
+          book: { $first: "$book" },
+          totalQuantity: { $sum: "$quantity" },
         },
-        {
-          $group: {
-            _id: "$book._id",
-            book: { $first: "$book" },
-            totalQuantity: { $sum: "$quantity" }
-          }
+      },
+      {
+        $project: {
+          _id: 0,
+          book: {
+            title: "$book.title",
+            image: "$book.image",
+            isbn: "$book.isbn",
+          },
+          totalQuantity: 1,
         },
-        {
-          $project: {
-            _id: 0,
-            book: {
-              title: "$book.title",
-              isbn: "$book.isbn"
-            },
-            totalQuantity: 1
-          }
-        }
-      ]
-    )
-    successResponse(res, { message: "Borrowed books summary retrieved successfully.", success: true, payload: books })
+      },
+    ];
+
+    // Search filter
+    if (search) {
+      pipeline.push({
+        $match: {
+          "book.title": { $regex: new RegExp(search, "i") },
+        },
+      });
+    }
+
+    // Quantity filter
+    if (filter === "high") {
+      pipeline.push({
+        $match: {
+          totalQuantity: { $gt: 10 },
+        },
+      });
+    } else if (filter === "medium") {
+      pipeline.push({
+        $match: {
+          totalQuantity: { $gte: 5, $lte: 10 },
+        },
+      });
+    } else if (filter === "low") {
+      pipeline.push({
+        $match: {
+          totalQuantity: { $lt: 5 },
+        },
+      });
+    }
+
+    // Sorting
+    pipeline.push({
+      $sort: { [sortField]: sortOrderValue },
+    });
+
+    // Pagination
+    pipeline.push(
+      { $skip: skip },
+      { $limit: Number(limit) }
+    );
+
+    const books = await Borrow.aggregate(pipeline);
+
+    successResponse(res, {
+      message: "Borrowed books summary retrieved successfully.",
+      success: true,
+      payload: books,
+    });
   } catch (error) {
-    next(error)
+    next(error);
   }
 };
 

@@ -26,6 +26,7 @@ export const getBooks = async (req: Request, res: Response, next: NextFunction) 
 
     const filterKeyword: FilterQuery<IBook> = {};
 
+
     if (filter && (filter !== "all")) {
       filterKeyword.genre = { $in: filter?.replace("-", " ")?.toUpperCase()?.split(",")?.map((genre) => genre.toUpperCase()) } //multiple genre filtering support
     };
@@ -82,7 +83,6 @@ export const createBook = async (req: Request, res: Response, next: NextFunction
     const body = req.body;
 
     const book = new Book(body);
-    console.log(body, book)
     await book.save();
 
     successResponse(res, { message: "Book created successfully.", success: true, statusCode: 201, payload: book })
@@ -134,7 +134,13 @@ export const updateBook = async (req: Request, res: Response, next: NextFunction
       description: "string",
       copies: "number",
       isbn: "number",
-      available: "boolean"
+      available: "boolean",
+      publishedYear: "number",
+      publisher: "string",
+      pages: "number",
+      language: "string",
+      price: "string",
+      image: "string"
     };
 
     if (!req.body || Object.keys(req.body).length === 0) {
