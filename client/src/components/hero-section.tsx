@@ -2,22 +2,33 @@
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Search, BookOpen, Users, Star } from "lucide-react"
-import { useNavigate, useSearchParams } from "react-router";
+import { useDebounce } from "@/hooks/useDebounce";
+import { setPage, setSearch } from "@/redux/features/books/bookSlice";
+import { useAppDispatch } from "@/redux/hooks";
+import { Search, BookOpen, Users, Star, XIcon } from "lucide-react"
+import { useState } from "react";
 
 export function HeroSection() {
-  const navigate = useNavigate();
-  const [searchParams, setUrlSearchParams] = useSearchParams();
-  const params = new URLSearchParams(searchParams);
+  const [inputValue, setInputValue] = useState("");
+
+  const dispatch = useAppDispatch();
+
+  const debouncedSearch = useDebounce((value: string) => {
+    dispatch(setSearch(value));
+    dispatch(setPage(1)); // Reset page to 1 when search changes
+    const element = document.getElementById('books-list');
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, 500);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setInputValue(e.target.value);
+    debouncedSearch(e.target.value);
+  }
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const formData = new FormData(e.currentTarget);
-    const searchQuery = formData.get("search") as string;
-    params.set("search", searchQuery);
-    setUrlSearchParams(params);
-
-    navigate(`?${params}`);
 
     const element = document.getElementById('books-list');
     if (element) {
@@ -43,13 +54,24 @@ export function HeroSection() {
           {/* Hero Search */}
           <div className="max-w-2xl mx-auto mb-12">
             <form onSubmit={handleSubmit} className="relative">
+
               <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
               <Input
                 name="search"
                 type="text"
+                value={inputValue}
+                onChange={handleChange}
                 placeholder="Search for books, authors, or genres..."
                 className="pl-12 pr-4 py-4 text-lg w-full rounded-full border-2 border-gray-200 focus:border-blue-500"
               />
+              {inputValue &&
+                <Button onClick={() => {
+                  setInputValue("");
+                  dispatch(setSearch(""));
+                }} type="button" size={"icon"} className="absolute right-24 top-1/2 transform -translate-y-1/2 text-gray-200 h-5 w-5 bg-transparent hover:bg-transparent">
+                  <XIcon />
+                </Button>
+              }
               <Button className="absolute right-0 top-1/2 transform -translate-y-1/2 rounded-full px-6">Search</Button>
             </form>
           </div>

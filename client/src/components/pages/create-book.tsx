@@ -22,7 +22,6 @@ export function CreateBookForm() {
       title: "",
       author: "",
       genre: "",
-      isbn: "",
       description: "",
       publisher: "",
       publishedYear: new Date().getFullYear(),
@@ -39,8 +38,7 @@ export function CreateBookForm() {
 
     try {
 
-      const response = await addBook(data).unwrap()
-      console.log("Book created successfully:", response)
+      await addBook(data).unwrap()
 
       toast.success("Book created successfully!", {
         description: `"${data.title}" has been added to your library.`,

@@ -1,5 +1,5 @@
 
-import { useState, type ReactNode } from "react"
+import { useEffect, useState, type ReactNode } from "react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -22,6 +22,9 @@ import type { Review } from "@/types/book"
 import { useParams } from "react-router"
 import { useGetBookQuery } from "@/redux/features/books/booksApi"
 import { BookDetailSkeleton } from "../single-book-loading"
+import { useAppDispatch } from "@/redux/hooks"
+import { setOpenBorrowModal, setSelectedBook } from "@/redux/features/books/bookSlice"
+import BorrowModal from "../borrow-modal"
 
 // Sample reviews
 const sampleReviews: Review[] = [
@@ -84,11 +87,18 @@ export function BookDetail() {
   }
 
   const params = useParams();
+  const dispatch = useAppDispatch();
 
   const { data, isLoading, isError, error } = useGetBookQuery(params.id as string, {
     refetchOnMountOrArgChange: true,
     refetchOnReconnect: true,
   });
+
+  useEffect(() => {
+    if (data?.data) {
+      dispatch(setSelectedBook(data.data))
+    }
+  }, [data?.data, dispatch])
 
 
   let content: ReactNode;
@@ -140,7 +150,11 @@ export function BookDetail() {
 
                 {/* Action Buttons */}
                 <div className="space-y-3">
-                  <Button className="w-full" disabled={!book.available || book.copies === 0}>
+                  <Button className="w-full" disabled={!book.available || book.copies === 0}
+                    onClick={() => {
+                      dispatch(setSelectedBook(book))
+                      dispatch(setOpenBorrowModal(true))
+                    }}>
                     <ShoppingCart className="h-4 w-4 mr-2" />
                     {book.available && book.copies > 0 ? "Borrow Book" : "Unavailable"}
                   </Button>
@@ -358,6 +372,9 @@ export function BookDetail() {
   };
 
   return (
-    <>{content}</>
+    <>
+      {content}
+      <BorrowModal />
+    </>
   )
 }

@@ -1,10 +1,11 @@
 import { Filter } from "lucide-react";
 import { Button } from "../ui/button";
-import { useNavigate, useSearchParams } from "react-router";
-import { useState } from "react";
 import { HeroSection } from "../hero-section";
 import BookList from "../book-list";
 import EditBookModal from "../edit-book-modal";
+import BorrowModal from "../borrow-modal";
+import { useAppDispatch, useAppSelector } from "@/redux/hooks";
+import { setFilter, setPage } from "@/redux/features/books/bookSlice";
 
 
 const genres = [
@@ -20,11 +21,17 @@ const genres = [
 
 
 const Home = () => {
-  const [searchParams, setSearchParams] = useSearchParams();
-  const params = new URLSearchParams(searchParams);
-  const [selectedGenre, setSelectedGenre] = useState(params.get("filter") || "All")
-  const navigate = useNavigate();
+  const dispatch = useAppDispatch()
+  const { filter } = useAppSelector((state) => state.books);
 
+  const handleFilterChange = (genre: string) => {
+    dispatch(setFilter(genre.toLowerCase().replace(" ", "-")));
+    dispatch(setPage(1)); // Reset page to 1 when filter changes
+    const element = document.getElementById('books-list');
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
 
   return (
     <>
@@ -45,13 +52,10 @@ const Home = () => {
             {genres.map((genre) => (
               <Button
                 key={genre}
-                variant={selectedGenre === genre.toLowerCase().replace(" ", "-") ? "default" : "outline"}
+                variant={filter.toLowerCase().replace(" ", "-") === genre.toLowerCase().replace(" ", "-") ? "default" : "outline"}
                 size="sm"
                 onClick={() => {
-                  setSelectedGenre(genre.toLowerCase().replace(" ", "-"));
-                  params.set("filter", genre.toLowerCase().replace(" ", "-"));
-                  setSearchParams(params);
-                  navigate(`?${params}`);
+                  handleFilterChange(genre);
                 }}
                 className="mb-2"
               >{genre}
@@ -65,6 +69,7 @@ const Home = () => {
         </div>
       </section>
       <EditBookModal />
+      <BorrowModal />
     </>
   )
 }

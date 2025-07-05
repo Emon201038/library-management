@@ -1,51 +1,71 @@
 import { booksApi, useDeleteBookMutation, useGetBooksQuery } from "@/redux/features/books/booksApi";
 import { useEffect, useState, type ReactNode, type SetStateAction } from "react";
-import { useNavigate, useSearchParams } from "react-router";
+import { useNavigate } from "react-router";
 import { Card, CardContent } from "./ui/card";
-import { BookOpen, EditIcon, Heart, MoreVerticalIcon, Star, Trash2Icon } from "lucide-react";
+import { BookOpen, BookOpenCheckIcon, EditIcon, Heart, MoreVerticalIcon, Star, Trash2Icon } from "lucide-react";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
-import { useAppDispatch } from "@/redux/hooks";
+import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "./ui/dropdown-menu";
-import { setSelectedBook } from "@/redux/features/books/bookSlice";
+import { setOpenBorrowModal, setOpenEditModal, setPage, setSelectedBook, toggleWishlist } from "@/redux/features/books/bookSlice";
 import { toast } from "sonner";
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "./ui/dialog";
+import { cn } from "@/lib/utils";
+import type { TBook } from "@/types/book";
 
 const BookList = () => {
-  const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
-  const [isOpen, setIsOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [deleteBookId, setDeleteBookId] = useState("");
-  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
 
   const dispatch = useAppDispatch();
+  const { wishlist, page, limit, search, filter } = useAppSelector(state => state.books);
 
-
-  const { data, isLoading, isError, error } = useGetBooksQuery(new URLSearchParams(searchParams),
+  const query = {
+    page: page.toString(),
+    limit: limit.toString(),
+    search,
+    filter
+  }
+  const { data, isLoading, isError, error } = useGetBooksQuery(query,
     {
       refetchOnReconnect: true,
       skipPollingIfUnfocused: true,
+      // refetchOnMountOrArgChange: true,
       pollingInterval: 180000
     });
 
   useEffect(() => {
     if (data?.data?.pagination?.page) {
-      setPage(Number(data?.data?.pagination?.page));
+      dispatch(setPage(Number(data?.data?.pagination?.page)))
+
     };
     setHasMore(!!data?.data?.pagination?.nextPage)
-  }, [data?.data]);
+  }, [data?.data, dispatch]);
 
   const loadMoreBooks = async () => {
     if (hasMore) {
-      const newParams = new URLSearchParams(searchParams);
-      newParams.set("page", (page + 1).toString());
-      newParams.set("limit", "12");
+      const newParams = {
+        page: (page + 1).toString(),
+        limit: limit.toString(),
+        search,
+        filter
+      };
 
-      await dispatch(booksApi.endpoints.getMoreBooks.initiate(new URLSearchParams(newParams), { forceRefetch: true })).unwrap();
+
+      await dispatch(booksApi.endpoints.getMoreBooks.initiate(newParams, { forceRefetch: true })).unwrap();
     }
   };
 
+  const toggleFavorite = (book: TBook) => {
+    dispatch(toggleWishlist(book));
+    if (wishlist.some(b => b._id === book._id)) {
+      toast.success("Book removed from wishlist");
+    } else {
+      toast.success("Book added to wishlist");
+    }
+  }
 
   let content: ReactNode = null;
   if (isLoading) {
@@ -84,10 +104,16 @@ const BookList = () => {
                 <Button
                   variant="ghost"
                   size="sm"
+                  onClick={() => toggleFavorite(book)}
                   className="absolute top-2 right-12 bg-white/80 dark:bg-black/80 hover:bg-white"
                 >
                   <Heart
-                    className={`h-4 w-4 text-gray-600 dark:text-gray-300`}
+                    className={cn(
+                      "h-4 w-4 ",
+                      {
+                        "fill-red-500 stroke-red-500": wishlist.some(b => b._id === book._id),
+                        "fill-none stroke-gray-600 dark:stroke-gray-300 text-gray-600 dark:text-gray-300": !wishlist.some(b => b._id === book._id),
+                      })}
                   />
                 </Button>
 
@@ -105,14 +131,28 @@ const BookList = () => {
                   </DropdownMenuTrigger>
                   <DropdownMenuContent>
                     <DropdownMenuItem
-                      onClick={() => dispatch(setSelectedBook(book))}
+                      onClick={() => {
+                        dispatch(setSelectedBook(book));
+                        dispatch(setOpenEditModal(true))
+                      }}
                       className="cursor-pointer"
                     >
                       <EditIcon />
                       Edit Book
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => {
-                      setIsOpen(true);
+                      if (book.available && book.copies > 0) {
+                        dispatch(setSelectedBook(book));
+                        dispatch(setOpenBorrowModal(true))
+                      } else {
+                        toast.error("Book is not available for borrowing");
+                      }
+                    }}>
+                      <BookOpenCheckIcon />
+                      Borrow Book
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => {
+                      setIsDeleteModalOpen(true);
                       setDeleteBookId(book._id);
                     }} className="text-destructive cursor-pointer">
                       <Trash2Icon className="text-destructive" />
@@ -182,7 +222,7 @@ const BookList = () => {
   return (
     <>
       {/* Delete book confirmation modal */}
-      <DeleteBookConfirmationModal id={deleteBookId} open={isOpen} setOpen={setIsOpen} />
+      <DeleteBookConfirmationModal id={deleteBookId} open={isDeleteModalOpen} setOpen={setIsDeleteModalOpen} />
 
       <div id="books-list">
         {content}

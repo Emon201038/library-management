@@ -5,7 +5,7 @@ export const bookSchema = z.object({
   author: z.string().min(1, "Author is required").max(100, "Author must be less than 100 characters"),
   genre: z.string().min(1, "Genre is required"),
   isbn: z
-    .string()
+    .number()
     .min(1, "ISBN is required")
   //   .regex(
   //     /^(?:ISBN(?:-1[03])?:? )?(?=[0-9X]{10}$|(?=(?:[0-9]+[- ]){3})[- 0-9X]{13}$|97[89][0-9]{10}$|(?=(?:[0-9]+[- ]){4})[- 0-9]{17}$)(?:97[89][- ]?)?[0-9]{1,5}[- ]?[0-9]+[- ]?[0-9]+[- ]?[0-9X]$/,
@@ -15,13 +15,16 @@ export const bookSchema = z.object({
   description: z.string().optional(),
   publisher: z.string().optional(),
   publishedYear: z
-    .number()
-    .min(1000, "Published year must be at least 1000")
-    .max(new Date().getFullYear(), `Published year cannot be in the future`)
-    .optional(),
-  language: z.string().min(1, "Language is required"),
-  pages: z.number().min(1, "Pages must be at least 1").optional(),
-  copies: z.number().min(1, "Total copies must be at least 1"),
+    .number().optional().refine(
+      (val) =>
+        !val || val >= 1000 && val <= new Date().getFullYear(),
+      {
+        message: "Please enter a valid published year",
+      })
+  ,
+  language: z.string().optional(),
+  pages: z.number().optional(),
+  copies: z.number().optional(),
   price: z.string().optional(),
   available: z.boolean().default(true).optional(),
   image: z.string().optional().refine(

@@ -3,7 +3,7 @@ export type TBook = {
   title: string
   author: string
   genre: string
-  isbn: string
+  isbn: number
   description?: string
   copies: number
   available: boolean
@@ -17,33 +17,8 @@ export type TBook = {
   image?: string
 }
 
-export type BorrowFormData = {
-  borrowerName: string
-  borrowerEmail: string
-  returnDate: string
-}
-
 export type BookFormData = Omit<TBook, "_id"> & {
   availability?: boolean
-}
-
-export type BorrowRecord = {
-  id: string
-  bookId: string
-  bookTitle: string
-  isbn: string
-  borrowerName: string
-  borrowerEmail: string
-  borrowDate: string
-  returnDate: string
-  status: "borrowed" | "returned"
-}
-
-export type BorrowSummary = {
-  bookId: string
-  bookTitle: string
-  isbn: string
-  totalQuantityBorrowed: number
 }
 
 export type Review = {

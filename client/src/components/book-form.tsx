@@ -10,6 +10,7 @@ import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, For
 import { Save, X } from "lucide-react"
 import { bookSchema, type BookFormData } from "@/lib/validations/book"
 import type { z } from "zod"
+import { cn } from "@/lib/utils"
 
 
 
@@ -18,6 +19,7 @@ interface BookFormProps {
     title: string
     author: string
     genre: string
+    isbn?: number
     description?: string
     publisher?: string
     publishedYear?: number
@@ -46,9 +48,13 @@ const defaultValues = {
   price: '',
   available: true,
   image: ''
-}
+};
+
 const genreOptions = [
   "Fiction",
+  "Adventure",
+  "Self-Help",
+  "Productivity",
   "Non-Fiction",
   "Fantasy",
   "Science Fiction",
@@ -151,7 +157,7 @@ const BookForm = ({ initialValues = defaultValues, onSubmit = async () => { }, i
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Genre *</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <Select onValueChange={v => field.onChange(v.toLowerCase().replace(" ", "-"))} value={field.value.toLowerCase().replace(" ", "-")}>
                       <FormControl>
                         <SelectTrigger className="focus:border-blue-400">
                           <SelectValue placeholder="Select a genre" />
@@ -159,7 +165,7 @@ const BookForm = ({ initialValues = defaultValues, onSubmit = async () => { }, i
                       </FormControl>
                       <SelectContent>
                         {genreOptions.map((genre) => (
-                          <SelectItem key={genre} value={genre}>
+                          <SelectItem key={genre} value={genre.toLowerCase().replace(" ", "-")}>
                             {genre}
                           </SelectItem>
                         ))}
@@ -172,11 +178,15 @@ const BookForm = ({ initialValues = defaultValues, onSubmit = async () => { }, i
               <FormField
                 control={form.control}
                 name="isbn"
+
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>ISBN *</FormLabel>
                     <FormControl>
-                      <Input placeholder="978-0-123456-78-9" className="focus:border-blue-400" {...field} />
+                      <Input placeholder="978-0-123456-78-9" className="focus:border-blue-400" {...field} type="number"
+                        onChange={(event) => {
+                          field.onChange(Number(event.target.value.replace(/[^0-9]/g, '')));
+                        }} />
                     </FormControl>
                     <FormDescription>Enter a valid ISBN-10 or ISBN-13 number</FormDescription>
                     <FormMessage />
@@ -192,7 +202,7 @@ const BookForm = ({ initialValues = defaultValues, onSubmit = async () => { }, i
                 <FormItem>
                   <FormLabel>Image (url)</FormLabel>
                   <FormControl>
-                    <Input placeholder="https://example.com/image.jpg" className="focus:border-blue-400" {...field} />
+                    <Input placeholder="https://example.com/image.jpg" className="focus:border-blue-400" {...field} type="url" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -320,7 +330,7 @@ const BookForm = ({ initialValues = defaultValues, onSubmit = async () => { }, i
                     <FormControl>
                       <Input
                         type="number"
-                        min="1"
+                        min="0"
                         className="focus:border-blue-400"
                         {...field}
                         onChange={(e) => field.onChange(Number(e.target.value))}
@@ -366,7 +376,7 @@ const BookForm = ({ initialValues = defaultValues, onSubmit = async () => { }, i
                     <FormDescription>Enable this to make the book available for users to borrow</FormDescription>
                   </div>
                   <FormControl>
-                    <Switch checked={field.value} onCheckedChange={field.onChange} />
+                    <Switch disabled={form.getValues("copies") === 0} className={cn(form.getValues("copies") === 0 ? "cursor-not-allowed" : "")} checked={field.value} onCheckedChange={field.onChange} />
                   </FormControl>
                 </FormItem>
               )}
@@ -394,12 +404,12 @@ const BookForm = ({ initialValues = defaultValues, onSubmit = async () => { }, i
             {isSubmitting ? (
               <div className="flex items-center">
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                Creating...
+                Loading...
               </div>
             ) : (
               <>
                 <Save className="h-4 w-4 mr-2" />
-                Create Book
+                Submit
               </>
             )}
           </Button>

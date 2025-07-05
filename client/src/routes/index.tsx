@@ -1,3 +1,4 @@
+import { BorrowSummaryPage } from "@/components/pages/borrow-summary";
 import { CreateBookForm } from "@/components/pages/create-book";
 import Home from "@/components/pages/home";
 import { BookDetail } from "@/components/pages/single-book";
@@ -24,6 +25,10 @@ export const router = createBrowserRouter([
       {
         path: "create-book",
         Component: CreateBookForm
+      },
+      {
+        path: "borrow-summary",
+        Component: BorrowSummaryPage
       }
     ],
   },

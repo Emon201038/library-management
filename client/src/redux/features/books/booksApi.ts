@@ -1,21 +1,28 @@
 import type { TBook, TBookApiResponse, TBooksApiResponse } from "@/types/book";
 import { apiSlice } from "../api/apiSlice";
+import type { BookFormData } from "@/lib/validations/book";
 
-const normalizeKey = (params: URLSearchParams) => {
-  const parsed = new URLSearchParams(params);
-  const page = parsed.get("page") || 1;
-  const limit = parsed.get("limit") || 12;
-  const search = parsed.get("search") || "";
-  const filter = parsed.get("filter") || "";
+type TQueryParams =
+  {
+    page: string;
+    limit: string;
+    search: string;
+    filter: string;
+  }
+
+const normalizeKey = (params: TQueryParams) => {
+  const page = params.page || "1";
+  const limit = params.limit || "12";
+  const search = params.search || "";
+  const filter = params.filter || "";
   return `page=${page}&limit=${limit}&search=${search}&filter=${filter}`;
 };
 
 
 export const booksApi = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
-    getBooks: builder.query<TBooksApiResponse, URLSearchParams>({
+    getBooks: builder.query<TBooksApiResponse, TQueryParams>({
       query: (params) => {
-        console.log(params, "args")
         const normalizedParams = normalizeKey(params);
         return {
           url: `/books?${normalizedParams}`,
@@ -23,7 +30,7 @@ export const booksApi = apiSlice.injectEndpoints({
         }
       },
     }),
-    getMoreBooks: builder.query<TBooksApiResponse, URLSearchParams>({
+    getMoreBooks: builder.query<TBooksApiResponse, TQueryParams>({
       query: (params) => {
         const normalizedParams = normalizeKey(params);
         return {
@@ -38,7 +45,7 @@ export const booksApi = apiSlice.injectEndpoints({
           const result = await queryFulfilled;
           if (result.data.data.books.length > 0) {
             dispatch(
-              booksApi.util.updateQueryData("getBooks", arg, (draft) => {
+              booksApi.util.updateQueryData("getBooks", { page: "1", limit: "12", search: arg.search, filter: arg.filter }, (draft) => {
                 const incomingBooks = result.data.data.books;
 
                 // Optional: dedup
@@ -61,7 +68,7 @@ export const booksApi = apiSlice.injectEndpoints({
         method: "GET",
       }),
     }),
-    addBook: builder.mutation<TBookApiResponse, unknown>({
+    addBook: builder.mutation<TBookApiResponse, BookFormData>({
       query: (data) => ({
         url: "/books",
         method: "POST",
@@ -70,7 +77,7 @@ export const booksApi = apiSlice.injectEndpoints({
 
       onQueryStarted: async (arg, { queryFulfilled, dispatch }) => {
         const id = Math.random().toString();
-        const patchResult = dispatch(booksApi.util.updateQueryData("getBooks", new URLSearchParams({ page: "1", limit: "12", search: "", filter: "" }), (draft) => {
+        const patchResult = dispatch(booksApi.util.updateQueryData("getBooks", { page: "1", limit: "12", search: "", filter: "all" }, (draft) => {
           const newBook = { ...arg as TBook, _id: id };
 
           draft.data.books = [newBook, ...draft.data.books];
@@ -78,7 +85,7 @@ export const booksApi = apiSlice.injectEndpoints({
 
         try {
           const response = await queryFulfilled;
-          dispatch(booksApi.util.updateQueryData("getBooks", new URLSearchParams(), (draft) => {
+          dispatch(booksApi.util.updateQueryData("getBooks", { page: "1", limit: "12", search: "", filter: "all" }, (draft) => {
             const book = draft.data.books.find((book) => book._id == id);
 
             if (book) {
@@ -89,7 +96,6 @@ export const booksApi = apiSlice.injectEndpoints({
                 };
               }
             }
-            console.log(JSON.stringify(book), "added book pessimistic");
             return draft
           }))
         } catch (error) {
@@ -98,12 +104,29 @@ export const booksApi = apiSlice.injectEndpoints({
         }
       }
     }),
-    updateBook: builder.mutation({
-      query: ({ id, data }) => ({
+    updateBook: builder.mutation<TBookApiResponse, { formData: BookFormData, id: string }>({
+      query: ({ id, formData }) => ({
         url: `/books/${id}`,
         method: "PUT",
-        body: data,
+        body: formData,
       }),
+      onQueryStarted: async (arg, { queryFulfilled, dispatch }) => {
+        const patchResult = dispatch(booksApi.util.updateQueryData("getBooks", { page: "1", limit: "12", search: "", filter: "all" }, (draft) => {
+          const index = draft.data.books.findIndex((b) => b._id === arg.id);
+          if (index !== -1) {
+            draft.data.books[index] = {
+              ...draft.data.books[index],
+              ...arg.formData,
+            };
+          }
+        }));
+        try {
+          await queryFulfilled;
+        } catch (error) {
+          console.log(error);
+          patchResult.undo();
+        }
+      }
     }),
     deleteBook: builder.mutation<{ message: string; success: boolean }, string>({
       query: (id) => ({
@@ -111,7 +134,7 @@ export const booksApi = apiSlice.injectEndpoints({
         method: "DELETE",
       }),
       onQueryStarted: async (id, { queryFulfilled, dispatch }) => {
-        const patchResult = dispatch(booksApi.util.updateQueryData("getBooks", new URLSearchParams({ page: "1", limit: "12", search: "", filter: "" }), (draft) => {
+        const patchResult = dispatch(booksApi.util.updateQueryData("getBooks", { page: "1", limit: "12", search: "", filter: "all" }, (draft) => {
           const index = draft.data.books.findIndex((b) => b._id === id);
           if (index !== -1) {
             draft.data.books.splice(index, 1);

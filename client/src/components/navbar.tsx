@@ -3,26 +3,35 @@
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Search, BookOpen, Heart, User, MenuIcon, PlusCircleIcon } from "lucide-react"
-import { Link, useNavigate, useSearchParams } from "react-router"
+import { Search, BookOpen, Heart, MenuIcon, PlusCircleIcon, ChartColumn, XIcon } from "lucide-react"
+import { Link, useNavigate } from "react-router"
 import { ModeToggle } from "./mode-toggle"
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "./ui/sheet"
+import { useAppDispatch } from "@/redux/hooks"
+import { setPage, setSearch } from "@/redux/features/books/bookSlice"
+import { useDebounce } from "@/hooks/useDebounce"
 
 export function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
   const navigate = useNavigate();
-  const [searchParams, setUrlSearchParams] = useSearchParams();
-  const params = new URLSearchParams(searchParams);
+
+  const dispatch = useAppDispatch();
+
+  const debouncedSearch = useDebounce((value: string) => {
+    dispatch(setSearch(value));
+    dispatch(setPage(1)); // Reset page to 1 when search changes
+  }, 500);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchQuery(e.target.value);
+    debouncedSearch(e.target.value);
+  }
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const formData = new FormData(e.currentTarget);
-    const searchQuery = formData.get("search") as string;
-    params.set("search", searchQuery);
-    setUrlSearchParams(params);
 
     setIsMenuOpen(false);
-    navigate(`?${params}`);
     const element = document.getElementById('books-list');
     if (element) {
       element.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -43,7 +52,15 @@ export function Navbar() {
           <div className="hidden md:flex flex-1 max-w-lg mx-8">
             <form onSubmit={handleSubmit} className="relative w-full">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-              <Input name="search" type="text" placeholder="Search books, authors, genres..." className="pl-10 pr-4 w-full" />
+              <Input onChange={handleChange} value={searchQuery} name="search" type="text" placeholder="Search books, authors, genres..." className="pl-10 pr-4 w-full" />
+              {searchQuery &&
+                <Button size={"icon"} type="button" className="absolute right-0 top-1/2 transform -translate-y-1/2 rounded-full px-6 bg-transparent hover:bg-transparent text-gray-200" onClick={() => {
+                  setSearchQuery("");
+                  dispatch(setSearch(""))
+                }}>
+                  <XIcon />
+                </Button>
+              }
             </form>
           </div>
 
@@ -63,9 +80,9 @@ export function Navbar() {
               <PlusCircleIcon className="h-4 w-4 mr-1" />
               Add Book
             </Button>
-            <Button variant="outline" className="text-gray-700 dark:text-white hover:text-blue-600 bg-transparent">
-              <User className="h-4 w-4 mr-1" />
-              Sign In
+            <Button onClick={() => navigate("/borrow-summary")} variant="outline" className="text-gray-700 dark:text-white hover:text-blue-600 bg-transparent">
+              <ChartColumn className="h-4 w-4 mr-1" />
+              Borrow Summary
             </Button>
             <ModeToggle />
           </div>
@@ -86,7 +103,15 @@ export function Navbar() {
                   <form onSubmit={handleSubmit} className="md:hidden pt-10 p-4">
                     <div className="relative">
                       <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                      <Input name="search" type="text" placeholder="Search books..." className="pl-10 pr-4 w-full" />
+                      <Input onChange={handleChange} value={searchQuery} name="search" type="text" placeholder="Search books..." className="pl-10 pr-4 w-full" />
+                      {searchQuery &&
+                        <Button size={"icon"} type="button" className="absolute right-0 top-1/2 transform -translate-y-1/2 rounded-full px-6 bg-transparent hover:bg-transparent text-gray-200" onClick={() => {
+                          setSearchQuery("");
+                          dispatch(setSearch(""))
+                        }}>
+                          <XIcon />
+                        </Button>
+                      }
                     </div>
                   </form>
                   {[
@@ -114,9 +139,9 @@ export function Navbar() {
                     },
                     {
                       id: 5,
-                      name: "Sign In",
-                      href: "/signin",
-                      icon: <User className="h-4 w-4 mr-1" />,
+                      name: "Borrow Summary",
+                      href: "/borrow-summary",
+                      icon: <ChartColumn className="h-4 w-4 mr-1" />,
                     }
                   ].map((link) => (
                     <Link onClick={() => setIsMenuOpen(false)} key={link.id} to={link.href} className="text-gray-700 dark:text-white hover:text-blue-600 flex gap-3 items-center cursor-pointer w-full px-4 py-2 hover:bg-slate-100 dark:hover:bg-slate-800">
