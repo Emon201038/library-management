@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "name": "Library-Management-System-backend",
+  "name": "social-app-backend",
   "builds": [
     {
       "src": "dist/server.js",

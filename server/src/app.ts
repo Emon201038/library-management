@@ -15,7 +15,6 @@ app.use(
     origin: [
       "http://localhost:5173",
       "https://libraryfrontend-flame.vercel.app",
-      "https://library-management-two-livid.vercel.app/",
     ],
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
   })

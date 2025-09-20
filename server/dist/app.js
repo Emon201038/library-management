@@ -15,11 +15,15 @@ app.use(express_1.default.json());
 app.use(express_1.default.urlencoded({ extended: true }));
 app.use((0, morgan_1.default)("dev"));
 app.use((0, cors_1.default)({
+<<<<<<< HEAD
     origin: [
         "http://localhost:5173",
         "https://libraryfrontend-flame.vercel.app",
         "https://library-management-two-livid.vercel.app/",
     ],
+=======
+    origin: ["http://localhost:5173", "https://libraryfrontend-flame.vercel.app", "https://library-management-two-livid.vercel.app"],
+>>>>>>> 3c5f08b42426cef18cf53dd419f10ff96637843e
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
 }));
 //routes
