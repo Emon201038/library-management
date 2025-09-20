@@ -15,7 +15,11 @@ app.use(express_1.default.json());
 app.use(express_1.default.urlencoded({ extended: true }));
 app.use((0, morgan_1.default)("dev"));
 app.use((0, cors_1.default)({
-    origin: ["http://localhost:5173", "https://libraryfrontend-flame.vercel.app"],
+    origin: [
+        "http://localhost:5173",
+        "https://libraryfrontend-flame.vercel.app",
+        "https://library-management-two-livid.vercel.app/",
+    ],
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
 }));
 //routes
@@ -24,7 +28,7 @@ app.use("/api/borrow", borrow_routes_1.default);
 app.get("/", (req, res) => {
     res.status(200).json({ message: "App is running!", success: true });
 });
-//not found handler 
+//not found handler
 app.use((req, res) => {
     res.status(404).json({ message: "Route not found", success: false });
 });
