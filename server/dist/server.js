@@ -15,7 +15,53 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const app_1 = __importDefault(require("./app"));
 const db_config_1 = __importDefault(require("./app/config/db.config"));
 const secret_1 = require("./secret");
-app_1.default.listen(secret_1.PORT, () => __awaiter(void 0, void 0, void 0, function* () {
-    yield (0, db_config_1.default)();
-    console.log("Server is running on port %s. Go to http://localhost:%s", secret_1.PORT, secret_1.PORT);
-}));
+let server;
+const startServer = () => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        yield (0, db_config_1.default)();
+        server = app_1.default.listen(secret_1.PORT, () => {
+            console.log(`Server is running on port ${secret_1.PORT}`);
+        });
+    }
+    catch (error) {
+        console.log(error);
+        process.exit(1);
+    }
+});
+(() => __awaiter(void 0, void 0, void 0, function* () {
+    yield startServer();
+}))();
+process.on("unhandledRejection", (error) => {
+    if (server) {
+        server.close(() => {
+            console.error(error);
+            process.exit(1);
+        });
+    }
+    else {
+        process.exit(1);
+    }
+});
+process.on("uncaughtException", (error) => {
+    if (server) {
+        server.close(() => {
+            console.error(error);
+            process.exit(1);
+        });
+    }
+    else {
+        process.exit(1);
+    }
+});
+process.on("SIGTERM", () => {
+    console.log("SIGTERM received");
+    if (server) {
+        server.close();
+    }
+});
+process.on("SIGINT", () => {
+    console.log("SIGINT received");
+    if (server) {
+        server.close();
+    }
+});
